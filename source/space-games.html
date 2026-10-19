@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050810">
+<title>掌心沙盘 · 空间交互实验室</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root{
+    --ink:#e8eef7; --muted:#7d8da6; --line:#1b2b3f;
+    --teal:#2dd4bf; --sky:#38bdf8; --gold:#fbbf24; --rose:#fb7185;
+    --bg0:#050810; --bg1:#0a1422;
+  }
+  html,body{height:100%;background:var(--bg0);-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}
+  body{font-family:system-ui,-apple-system,"PingFang SC","Noto Sans SC","Helvetica Neue",sans-serif;color:var(--ink);}
+  canvas{touch-action:none;user-select:none;-webkit-user-select:none;display:block;}
+  .mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;}
+  .track{letter-spacing:.22em;}
+  .card{position:relative;transition:transform .18s cubic-bezier(.2,.8,.3,1),border-color .18s;}
+  .card:active{transform:scale(.978);}
+  .card::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+    background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 38%);}
+  .card:hover{border-color:rgba(56,189,248,.35);}
+  .glass{background:linear-gradient(180deg,rgba(16,28,44,.92),rgba(10,18,30,.92));}
+  .leddot{width:6px;height:6px;border-radius:50%;display:inline-block;}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .rise{animation:rise .5s cubic-bezier(.2,.8,.3,1) both;}
+  .d1{animation-delay:.04s}.d2{animation-delay:.10s}.d3{animation-delay:.16s}.d4{animation-delay:.22s}
+</style>
+</head>
+<body class="antialiased">
+
+<!-- #region 主屏 -->
+<div id="screen-menu" class="min-h-screen max-w-[430px] mx-auto px-5 pb-10 flex flex-col">
+  <header class="pt-8 pb-5 rise">
+    <div class="flex items-center gap-2 mb-4">
+      <span class="leddot" style="background:var(--teal);box-shadow:0 0 8px var(--teal)"></span>
+      <span class="text-[10px] text-[color:var(--muted)] track mono uppercase">Spatial Sensor Lab</span>
+    </div>
+    <h1 class="text-[34px] leading-[1.1] font-semibold tracking-tight">掌心沙盘</h1>
+    <p class="mt-2 text-[13px] leading-relaxed text-[color:var(--muted)]">
+      三款只用手机构造姿态玩的实验性小游戏<br>倾斜、转身、翻转，都是一次输入
+    </p>
+  </header>
+
+  <section class="rounded-2xl glass border border-[color:var(--line)] p-4 mb-4 rise d1">
+    <div class="flex items-center justify-between mb-3">
+      <span class="text-[10px] track mono uppercase text-[color:var(--muted)]">Sensor Array</span>
+      <button id="btn-auth" class="text-[10px] px-2.5 py-1 rounded-md border border-[rgba(56,189,248,.3)] text-[color:var(--sky)] bg-[rgba(56,189,248,.07)] active:scale-95 transition mono">启用</button>
+    </div>
+    <div class="grid grid-cols-3 gap-2" id="led-row"></div>
+    <label class="mt-3 flex items-center gap-2 text-[11px] text-[color:var(--muted)] select-none">
+      <input type="checkbox" id="chk-fallback" class="accent-[color:var(--sky)] w-3.5 h-3.5">
+      无传感器时切换触屏兜底
+    </label>
+  </section>
+
+  <div class="flex-1 flex flex-col justify-center gap-3">
+    <button data-game="sand" class="card text-left rounded-2xl border border-[color:var(--line)] p-[18px] overflow-hidden rise d2"
+      style="background:linear-gradient(135deg,rgba(251,191,36,.10),rgba(251,113,133,.05) 55%,rgba(11,20,34,.9))">
+      <div class="flex items-start gap-4">
+        <div class="w-11 h-11 shrink-0 rounded-xl grid place-items-center border" style="border-color:rgba(251,191,36,.28);background:rgba(251,191,36,.10);color:var(--gold)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <path d="M3 15c3 2 6 2 9 0s6-2 9 0"/><path d="M4 10c2.7-1.8 5.3-1.8 8 0s5.3 1.8 8 0"/><circle cx="12" cy="6.5" r="2"/>
+          </svg>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[16px] font-semibold">重力沙盘</span>
+            <span class="text-[10px] mono text-[color:var(--muted)]">01</span>
+          </div>
+          <p class="mt-1 text-[12px] leading-[1.5] text-[color:var(--muted)]">手机就是托盘。倾斜晃动青球入环，翻面会把重力倒过来。</p>
+          <div class="mt-3 flex gap-1.5">
+            <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(251,191,36,.22)] text-[rgba(251,191,36,.9)]">加速度计</span>
+            <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(251,191,36,.22)] text-[rgba(251,191,36,.9)]">三关</span>
+          </div>
+        </div>
+      </div>
+    </button>
+
+    <button data-game="beacon" class="card text-left rounded-2xl border border-[color:var(--line)] p-[18px] overflow-hidden rise d3"
+      style="background:linear-gradient(135deg,rgba(56,189,248,.10),rgba(99,102,241,.05) 55%,rgba(11,20,34,.9))">
+      <div class="flex items-start gap-4">
+        <div class="w-11 h-11 shrink-0 rounded-xl grid place-items-center border" style="border-color:rgba(56,189,248,.28);background:rgba(56,189,248,.10);color:var(--sky)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><path d="M12 12 12 3.5"/><path d="M17.5 17.5 20 20"/>
+          </svg>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[16px] font-semibold">灯塔号</span>
+            <span class="text-[10px] mono text-[color:var(--muted)]">02</span>
+          </div>
+          <p class="mt-1 text-[12px] leading-[1.5] text-[color:var(--muted)]">手机是一座罗盘。转身把信号点转到正上方并稳住。</p>
+          <div class="mt-3 flex gap-1.5">
+            <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(56,189,248,.22)] text-[rgba(56,189,248,.9)]">罗盘朝向</span>
+            <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(56,189,248,.22)] text-[rgba(56,189,248,.9)]">五座灯塔</span>
+          </div>
+        </div>
+      </div>
+    </button>
+
+    <button data-game="room" class="card text-left rounded-2xl border border-[color:var(--line)] p-[18px] overflow-hidden rise d4"
+      style="background:linear-gradient(135deg,rgba(45,212,191,.10),rgba(16,185,129,.05) 55%,rgba(11,20,34,.9))">
+      <div class="flex items-start gap-4">
+        <div class="w-11 h-11 shrink-0 rounded-xl grid place-items-center border" style="border-color:rgba(45,212,191,.28);background:rgba(45,212,191,.10);color:var(--teal)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+            <rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="15.5" cy="12" r="1.2"/>
+          </svg>
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center justify-between">
+            <span class="text-[16px] font-semibold">无接触密室</span>
+            <span class="text-[10px] mono text-[color:var(--muted)]">03</span>
+          </div>
+          <p class="mt-1 text-[12px] leading-[1.5] text-[color:var(--muted)]">五道姿态口令：扣屏、举天、转整圈、定身、翻面三连。</p>
+          <div class="mt-3 flex gap-1.5">
+            <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(45,212,191,.22)] text-[rgba(45,212,191,.9)]">姿态解谜</span>
+            <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(45,212,191,.22)] text-[rgba(45,212,191,.9)]">五关</span>
+          </div>
+        </div>
+      </div>
+    </button>
+  </div>
+
+  <p class="text-center text-[10px] text-[#4a5a70] mt-5 leading-relaxed">站着玩、手举到胸口高度，姿态判读最准</p>
+</div>
+<!-- #endregion -->
+
+<!-- #region 游戏壳 -->
+<div id="screen-game" class="hidden min-h-screen max-w-[430px] mx-auto px-3 pb-5 flex flex-col">
+  <div class="flex items-center gap-3 pt-4 pb-3">
+    <button id="btn-back" class="w-9 h-9 rounded-xl border border-[color:var(--line)] bg-[rgba(16,28,44,.8)] grid place-items-center active:scale-95 transition">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+    </button>
+    <div class="flex-1 min-w-0">
+      <div id="g-title" class="text-[15px] font-semibold leading-tight truncate"></div>
+      <div id="g-sub" class="text-[10px] text-[color:var(--muted)] leading-tight mt-0.5 truncate"></div>
+    </div>
+    <div id="mode-badge" class="text-[10px] px-2 py-1 rounded-md leading-none border mono"></div>
+  </div>
+  <div id="hud" class="text-[12px] text-[#a8b6c9] px-1 mb-2 min-h-[1.4em] leading-relaxed"></div>
+  <div class="relative rounded-[20px] overflow-hidden border border-[color:var(--line)]" style="box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 18px 40px -20px rgba(0,0,0,.9)">
+    <canvas id="game-canvas"></canvas>
+    <div id="overlay" class="absolute inset-0 hidden flex-col items-center justify-center text-center p-7" style="background:radial-gradient(circle at 50% 40%,rgba(5,8,16,.82),rgba(5,8,16,.96))"></div>
+  </div>
+  <div id="pad-wrap" class="mt-3 hidden">
+    <div class="text-[10px] text-[color:var(--muted)] mb-1.5 track mono uppercase">Touch fallback</div>
+    <div id="pad" class="relative w-full h-24 rounded-xl border border-[color:var(--line)]" style="background:linear-gradient(180deg,#0b1523,#070d17)">
+      <div id="pad-knob" class="absolute w-8 h-8 -ml-4 -mt-4 rounded-full border border-[rgba(56,189,248,.5)]" style="left:50%;top:50%;background:radial-gradient(circle at 35% 30%,#7dd3fc,#0369a1);box-shadow:0 0 18px rgba(56,189,248,.45)"></div>
+    </div>
+  </div>
+  <div id="act-wrap" class="mt-3 hidden">
+    <button id="btn-act" class="w-full py-3 rounded-xl border border-[rgba(45,212,191,.35)] text-[color:var(--teal)] text-[13px] font-medium active:scale-[.99] transition" style="background:rgba(45,212,191,.08)">按住模拟这个动作</button>
+  </div>
+</div>
+<!-- #endregion -->
+
+<script>
+(function(){
+'use strict';
+
+/* ==================== CONFIG ==================== */
+const C = {
+  gravity: 1500, drag: 0.985, bounce: 0.55, ballR: 16,
+  goalHold: 0.8, tiltFull: 32, flipDeg: 50,
+  beacon: { lockDeg: 11, need: 1.2, levels: [[60,120],[-140,-70],[20,55],[160,210],[-30,20]] },
+  room: { holdQuick:1.0, holdSlow:2.2, spinTotal:360, shakes:3 },
+  col: { teal:'#2dd4bf', sky:'#38bdf8', gold:'#fbbf24', rose:'#fb7185',
+         ink:'#e8eef7', muted:'#7d8da6', line:'#1b2b3f' }
+};
+// 把配色平铺到顶层，供 C.teal / C.sky 等直接取用
+Object.assign(C, C.col);
+
+/* ==================== STATE ==================== */
+const state = {
+  game:null, touchMode:false,
+  W:360, H:560, dpr:Math.min(window.devicePixelRatio||1, 2),
+  raf:0, last:0, elapsed:0,
+  raw:{ beta:null, gamma:null, alpha:null, absA:9.8, hasOri:false, hasMot:false, tOri:0, tMot:0 },
+  pose:{ beta:0, gamma:0, alpha:0, absA:9.8, dAbsA:0 },
+  cal:{ beta:0, gamma:0, alpha:0 },
+  pad:{ x:0, y:0 }
+};
+
+/* ==================== DOM ==================== */
+const $ = id => document.getElementById(id);
+const dom = {
+  menu:$('screen-menu'), game:$('screen-game'), canvas:$('game-canvas'), overlay:$('overlay'),
+  hud:$('hud'), title:$('g-title'), sub:$('g-sub'), badge:$('mode-badge'), back:$('btn-back'),
+  padWrap:$('pad-wrap'), pad:$('pad'), knob:$('pad-knob'), actWrap:$('act-wrap'), actBtn:$('btn-act'),
+  led:$('led-row'), auth:$('btn-auth'), chk:$('chk-fallback')
+};
+const cv = dom.canvas, ctx = cv.getContext('2d');
+
+/* ==================== UTILS ==================== */
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+const wrap180=a=>{a=(a+180)%360;if(a<0)a+=360;return a-180;};
+const damp=(cur,tgt,l,dt)=>cur+(tgt-cur)*(1-Math.exp(-l*dt));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const rad=d=>d*Math.PI/180;
+const deg=r=>r*180/Math.PI;
+
+/* ---- 噪点纹理（一次性生成，用于全局颗粒质感） ---- */
+let noisePattern=null, scanPattern=null;
+function buildNoise(){
+  const s=140, c=document.createElement('canvas');
+  c.width=c.height=s;
+  const x=c.getContext('2d'), img=x.createImageData(s,s);
+  for(let i=0;i<img.data.length;i+=4){
+    const v=(Math.random()*255)|0;
+    img.data[i]=img.data[i+1]=img.data[i+2]=v; img.data[i+3]=9;
+  }
+  x.putImageData(img,0,0);
+  noisePattern=ctx.createPattern(c,'repeat');
+  // 扫描线纹理（2px 周期，1px 亮线）
+  const sc=document.createElement('canvas'); sc.width=4; sc.height=3;
+  const sx=sc.getContext('2d');
+  sx.fillStyle='rgba(255,255,255,.018)'; sx.fillRect(0,0,4,1);
+  scanPattern=ctx.createPattern(sc,'repeat');
+}
+/* ---- 全局后期：颗粒 + 暗角 ---- */
+function postFX(){
+  const W=state.W,H=state.H;
+  if(scanPattern){ ctx.fillStyle=scanPattern; ctx.fillRect(0,0,W,H); }
+  if(noisePattern){ ctx.fillStyle=noisePattern; ctx.fillRect(0,0,W,H); }
+  const v=ctx.createRadialGradient(W/2,H*0.46,Math.min(W,H)*0.25,W/2,H*0.5,Math.max(W,H)*0.78);
+  v.addColorStop(0,'rgba(0,0,0,0)'); v.addColorStop(1,'rgba(0,0,0,.55)');
+  ctx.fillStyle=v; ctx.fillRect(0,0,W,H);
+}
+/* ---- 顶面高光，让画面像一块玻璃 ---- */
+function glassSheen(){
+  const W=state.W,H=state.H;
+  const g=ctx.createLinearGradient(0,0,W*0.6,H*0.7);
+  g.addColorStop(0,'rgba(255,255,255,.055)');
+  g.addColorStop(0.35,'rgba(255,255,255,.012)');
+  g.addColorStop(1,'rgba(255,255,255,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+}
+
+/* ==================== 传感器 ==================== */
+function onOrientation(e){
+  if(e.beta==null) return;
+  state.raw.beta=e.beta; state.raw.gamma=e.gamma||0;
+  if(e.alpha!=null) state.raw.alpha=e.alpha;
+  state.raw.hasOri=true; state.raw.tOri=performance.now();
+}
+function onMotion(e){
+  const a=e.accelerationIncludingGravity; if(!a) return;
+  state.raw.absA=Math.hypot(a.x||0,a.y||0,a.z||0);
+  state.raw.hasMot=true; state.raw.tMot=performance.now();
+}
+function attachSensors(){
+  window.addEventListener('deviceorientation', onOrientation, true);
+  window.addEventListener('devicemotion', onMotion, true);
+}
+function bootSensors(){
+  const hasOri = typeof window.DeviceOrientationEvent!=='undefined';
+  if(hasOri && typeof DeviceOrientationEvent.requestPermission==='function'){
+    DeviceOrientationEvent.requestPermission().then(r=>{
+      if(r==='granted'){ attachSensors(); dom.auth.textContent='已启用'; dom.auth.disabled=true; }
+      else enableTouch(true);
+    }).catch(()=> enableTouch(true));
+  } else if(hasOri){
+    attachSensors(); dom.auth.textContent='已启用'; dom.auth.disabled=true;
+  } else {
+    enableTouch(true);
+  }
+}
+function paintLEDs(){
+  const hasOri = typeof window.DeviceOrientationEvent!=='undefined';
+  const hasMot = typeof window.DeviceMotionEvent!=='undefined';
+  const items=[
+    ['倾角','陀螺仪',hasOri,state.raw.hasOri],
+    ['加速度','加速度计',hasMot,state.raw.hasMot],
+    ['朝向','罗盘',hasOri,state.raw.hasOri]
+  ];
+  dom.led.innerHTML=items.map(([name,hint,cap,on])=>{
+    const color = on ? C.teal : (cap ? '#4a5a70' : '#2a3546');
+    const glow  = on ? `box-shadow:0 0 7px ${C.teal}` : '';
+    return `<div class="rounded-lg border border-[color:var(--line)] px-2 py-2" style="background:rgba(5,10,18,.55)">
+      <div class="flex items-center gap-1.5">
+        <span class="leddot" style="background:${color};${glow}"></span>
+        <span class="text-[10px] text-[#b6c3d4]">${name}</span>
+      </div>
+      <div class="text-[9px] text-[#4a5a70] mt-0.5 truncate">${on?'读取中':(cap?hint+'·待用':'不支持')}</div>
+    </div>`;
+  }).join('');
+}
+function enableTouch(v){
+  state.touchMode=!!v; dom.chk.checked=state.touchMode;
+  dom.badge.textContent = state.touchMode?'触屏兜底':'传感器';
+  dom.badge.style.borderColor = state.touchMode?'rgba(251,191,36,.35)':'rgba(56,189,248,.35)';
+  dom.badge.style.color = state.touchMode?C.gold:C.sky;
+  dom.badge.style.background = state.touchMode?'rgba(251,191,36,.08)':'rgba(56,189,248,.08)';
+}
+function updatePose(dt){
+  const r=state.raw;
+  if(r.beta!=null){
+    state.pose.beta=damp(state.pose.beta,r.beta,14,dt);
+    state.pose.gamma=damp(state.pose.gamma,r.gamma,14,dt);
+    if(r.alpha!=null) state.pose.alpha=damp(state.pose.alpha,r.alpha,9,dt);
+  }
+  state.pose.absA=damp(state.pose.absA,r.absA,10,dt);
+  state.pose.dAbsA=damp(state.pose.dAbsA,Math.abs(r.absA-9.8),6,dt);
+}
+
+/* ==================== 画布 ==================== */
+function fitCanvas(){
+  const w=cv.parentElement.clientWidth||360;
+  const h=clamp(Math.round(window.innerHeight*0.615),300,690);
+  state.W=w; state.H=h; state.dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.style.width=w+'px'; cv.style.height=h+'px';
+  cv.width=Math.round(w*state.dpr); cv.height=Math.round(h*state.dpr);
+  ctx.setTransform(state.dpr,0,0,state.dpr,0,0);
+  buildNoise();
+}
+
+/* ==================== 循环 ==================== */
+function loop(ts){
+  const dt=Math.min(0.04,(ts-state.last)/1000||0.016);
+  state.last=ts; state.elapsed+=dt;
+  updatePose(dt);
+  if(state.game==='sand') sand.update(dt);
+  else if(state.game==='beacon') beacon.update(dt);
+  else if(state.game==='room') room.update(dt);
+  state.raf=requestAnimationFrame(loop);
+}
+function startLoop(){ stopLoop(); state.last=performance.now(); state.raf=requestAnimationFrame(loop); }
+function stopLoop(){ if(state.raf) cancelAnimationFrame(state.raf); state.raf=0; }
+
+/* ==================== 覆盖层 ==================== */
+function showOverlay(html){ dom.overlay.innerHTML=html; dom.overlay.classList.remove('hidden'); dom.overlay.classList.add('flex'); }
+function hideOverlay(){ dom.overlay.classList.add('hidden'); dom.overlay.classList.remove('flex'); dom.overlay.innerHTML=''; }
+const btnStyle=(c)=>`class="mt-6 px-7 py-3 rounded-xl font-semibold text-[13px] active:scale-95 transition" style="background:${c};color:#04111a"`;
+function overlayCard(icon,title,desc,btnText,act,color){
+  return `<div class="text-[26px] mb-1">${icon}</div>
+    <div class="text-[17px] font-semibold" style="color:${color}">${title}</div>
+    ${desc?`<div class="text-[11px] text-[color:var(--muted)] mt-1.5">${desc}</div>`:''}
+    <button data-act="${act}" ${btnStyle(color)}>${btnText}</button>`;
+}
+
+/* ==================== 菜单 ==================== */
+function goMenu(){
+  stopLoop(); state.game=null;
+  dom.overlay.classList.add('hidden');
+  dom.game.classList.add('hidden');
+  dom.menu.classList.remove('hidden');
+  dom.padWrap.classList.add('hidden');
+  dom.actWrap.classList.add('hidden');
+  hideOverlay();
+}
+
+/* =====================================================================
+   GAME 1 · 重力沙盘
+   ===================================================================== */
+const sand=(function(){
+  let ball,holes,coins,goal,sparks,hold,status,level,trail=[];
+
+  function layoutFor(lv){
+    const W=state.W,H=state.H,cx=W/2,cy=H/2;
+    ball={x:cx,y:cy+H*0.17,vx:0,vy:0,r:C.ballR};
+    goal={x:cx,y:cy-H*0.25,r:20};
+    sparks=[]; trail=[]; hold=0; status='play';
+    const base=[
+      [[-0.26,0.02],[0.26,-0.10]],
+      [[-0.30,-0.16],[0.28,0.06],[0,0.14]],
+      [[-0.30,-0.16],[0.30,-0.16],[0,0.10],[-0.14,0.30],[0.14,0.30]]
+    ][clamp(lv,0,2)];
+    holes=base.map(([fx,fy],i)=>({x:cx+fx*W, y:cy+fy*H, r:15+(i%2)*5, phase:i*1.7}));
+    coins=[{x:cx-W*0.30,y:cy+H*0.31,on:true,phase:0.4},
+           {x:cx+W*0.30,y:cy-H*0.37,on:true,phase:2.1}];
+    level=lv;
+  }
+  function gravity(){
+    if(state.touchMode) return {x:state.pad.x,y:state.pad.y};
+    const gx=clamp(wrap180(state.pose.gamma-state.cal.gamma)/C.tiltFull,-1.25,1.25);
+    const gy=clamp(wrap180(state.pose.beta-state.cal.beta)/C.tiltFull,-1.25,1.25);
+    const flipped=Math.abs(wrap180(state.pose.beta))>90+C.flipDeg;
+    return flipped?{x:-gx,y:-gy}:{x:gx,y:gy};
+  }
+  function update(dt){
+    if(status!=='play'){ draw(); return; }
+    const g=gravity();
+    ball.vx+=g.x*C.gravity*dt; ball.vy+=g.y*C.gravity*dt;
+    const drag=Math.pow(C.drag,dt*60);
+    ball.vx*=drag; ball.vy*=drag;
+    ball.x+=ball.vx*dt; ball.y+=ball.vy*dt;
+
+    const W=state.W,H=state.H,r=ball.r;
+    if(ball.x<r){ball.x=r;ball.vx=Math.abs(ball.vx)*C.bounce;}
+    if(ball.x>W-r){ball.x=W-r;ball.vx=-Math.abs(ball.vx)*C.bounce;}
+    if(ball.y<r){ball.y=r;ball.vy=Math.abs(ball.vy)*C.bounce;}
+    if(ball.y>H-r){ball.y=H-r;ball.vy=-Math.abs(ball.vy)*C.bounce;}
+
+    for(const h of holes){
+      const dx=ball.x-h.x,dy=ball.y-h.y,d=Math.hypot(dx,dy)||1;
+      const reach=h.r+r+26;
+      if(d<reach){
+        const pull=(1-d/reach)*1700;
+        ball.vx-=(dx/d)*pull*dt; ball.vy-=(dy/d)*pull*dt;
+      }
+      if(d<h.r+r*0.5){
+        status='dead';
+        showOverlay(overlayCard('◍','被黑洞吞了','差一点就过去了',"再来一次",'retry',C.rose));
+      }
+    }
+    for(const c of coins){
+      if(c.on && Math.hypot(ball.x-c.x,ball.y-c.y)<c.r+r){
+        c.on=false;
+        for(let i=0;i<12;i++) sparks.push({x:c.x,y:c.y,vx:rnd(-70,70),vy:rnd(-110,20),life:0.55,max:0.55});
+      }
+    }
+    if(Math.hypot(ball.x-goal.x,ball.y-goal.y)<goal.r+r*0.55) hold+=dt;
+    else hold=Math.max(0,hold-dt*1.6);
+    if(hold>=C.goalHold){
+      status='win';
+      showOverlay(overlayCard('◈','进环了','剩余金币 '+coins.filter(c=>c.on).length+' 枚','下一关','next',C.teal));
+    }
+    for(const s of sparks){s.life-=dt;s.x+=s.vx*dt;s.y+=s.vy*dt;s.vy+=320*dt;}
+    sparks=sparks.filter(s=>s.life>0);
+
+    trail.push({x:ball.x,y:ball.y});
+    if(trail.length>9) trail.shift();
+
+    const flip=Math.abs(wrap180(state.pose.beta))>90+C.flipDeg;
+    dom.hud.innerHTML=
+      `<span style="color:${C.muted}">LEVEL ${level+1}</span>  `
+      +`<span style="color:${C.gold}">◆ ${coins.filter(c=>c.on).length}</span>  `
+      +`<span style="color:${flip?C.sky:C.muted}">${flip?'◐ 重力已翻面':'◑ 屏朝上'}</span>`;
+    draw();
+  }
+
+  function drawBackground(){
+    const W=state.W,H=state.H;
+    const g=ctx.createRadialGradient(W*0.5,H*0.42,20,W*0.5,H*0.5,Math.max(W,H)*0.78);
+    g.addColorStop(0,'#0d1c2f'); g.addColorStop(0.55,'#08121f'); g.addColorStop(1,'#04080e');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // 细网格，随倾斜微移，制造"托盘表面"的透视暗示
+    const ox=clamp(state.pose.gamma,-60,60)*0.9, oy=clamp(state.pose.beta,-60,60)*0.9;
+    ctx.lineWidth=1;
+    for(let x=-80;x<W+80;x+=36){
+      ctx.beginPath(); ctx.moveTo(x+ox,0); ctx.lineTo(x+ox,H);
+      ctx.strokeStyle='rgba(56,189,248,.045)'; ctx.stroke();
+    }
+    for(let y=-80;y<H+80;y+=36){
+      ctx.beginPath(); ctx.moveTo(0,y+oy); ctx.lineTo(W,y+oy);
+      ctx.strokeStyle='rgba(56,189,248,.045)'; ctx.stroke();
+    }
+  }
+  function drawHole(h,t){
+    ctx.save(); ctx.translate(h.x,h.y);
+    const R=h.r;
+    // 环境暗化
+    const halo=ctx.createRadialGradient(0,0,R*0.8,0,0,R*2.9);
+    halo.addColorStop(0,'rgba(1,4,10,.96)'); halo.addColorStop(.45,'rgba(1,4,10,.42)'); halo.addColorStop(1,'rgba(1,4,10,0)');
+    ctx.beginPath(); ctx.arc(0,0,R*2.9,0,Math.PI*2); ctx.fillStyle=halo; ctx.fill();
+    // 受光边缘（上亮下暗，形成凹陷）
+    const rim=ctx.createLinearGradient(0,-R,0,R);
+    rim.addColorStop(0,'rgba(147,217,255,.62)');
+    rim.addColorStop(.42,'rgba(56,189,248,.14)');
+    rim.addColorStop(1,'rgba(6,16,28,.95)');
+    ctx.beginPath(); ctx.arc(0,0,R+1.4,0,Math.PI*2);
+    ctx.strokeStyle=rim; ctx.lineWidth=2.6; ctx.stroke();
+    // 洞心（内壁向外变亮，形成凹陷）
+    const core=ctx.createRadialGradient(-R*.3,-R*.35,R*.05,0,0,R*1.02);
+    core.addColorStop(0,'#000000'); core.addColorStop(.55,'#02070f'); core.addColorStop(.86,'#0a1c2e'); core.addColorStop(1,'#12314a');
+    ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2); ctx.fillStyle=core; ctx.fill();
+    // 上缘受光弧
+    ctx.beginPath(); ctx.arc(0,0,R+1.2,rad(-138),rad(-42));
+    ctx.strokeStyle='rgba(186,230,253,.85)'; ctx.lineWidth=2.2; ctx.lineCap='round';
+    ctx.shadowColor='rgba(147,217,255,.8)'; ctx.shadowBlur=7; ctx.stroke(); ctx.shadowBlur=0;
+    // 吸积盘
+    for(let k=0;k<2;k++){
+      const a0=t*(1.25-k*.45)+h.phase+k*Math.PI;
+      ctx.beginPath(); ctx.arc(0,0,R+3.4+k*4.2,a0,a0+1.55);
+      ctx.strokeStyle=k===0?'rgba(147,217,255,.6)':'rgba(45,212,191,.3)';
+      ctx.lineWidth=k===0?2:1.3; ctx.lineCap='round';
+      ctx.shadowColor=k===0?'rgba(56,189,248,.85)':'rgba(45,212,191,.5)';
+      ctx.shadowBlur=9; ctx.stroke(); ctx.shadowBlur=0;
+    }
+    // 洞内残光
+    const cg=ctx.createRadialGradient(0,0,0,0,0,R*.55);
+    cg.addColorStop(0,'rgba(56,189,248,.18)'); cg.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.arc(0,0,R*.55,0,Math.PI*2); ctx.fillStyle=cg; ctx.fill();
+    ctx.restore();
+  }
+  function drawCoin(c,t){
+    const R=12;
+    ctx.save(); ctx.translate(c.x,c.y);
+    ctx.rotate(Math.sin(t*1.1+c.phase)*0.14);
+    const glow=ctx.createRadialGradient(0,0,1,0,0,R*2.5);
+    glow.addColorStop(0,'rgba(251,191,36,.30)'); glow.addColorStop(.5,'rgba(251,191,36,.07)'); glow.addColorStop(1,'rgba(251,191,36,0)');
+    ctx.beginPath(); ctx.arc(0,0,R*2.5,0,Math.PI*2); ctx.fillStyle=glow; ctx.fill();
+    const hex=(r)=>{ ctx.beginPath();
+      for(let i=0;i<6;i++){ const a=rad(i*60-90), px=Math.cos(a)*r, py=Math.sin(a)*r;
+        i?ctx.lineTo(px,py):ctx.moveTo(px,py); } ctx.closePath(); };
+    hex(R);
+    const g=ctx.createLinearGradient(-R,-R,R,R);
+    g.addColorStop(0,'#fef3c7'); g.addColorStop(.42,'#fbbf24'); g.addColorStop(1,'#8a3f06');
+    ctx.fillStyle=g; ctx.fill();
+    ctx.strokeStyle='rgba(255,252,235,.85)'; ctx.lineWidth=1.2; ctx.stroke();
+    hex(R*.50); ctx.strokeStyle='rgba(120,53,15,.7)'; ctx.lineWidth=1.1; ctx.stroke();
+    ctx.restore();
+  }
+  function drawGoal(t,p){
+    ctx.save(); ctx.translate(goal.x,goal.y);
+    const R=goal.r, breathe=1+Math.sin(t*2.1)*0.045;
+    const halo=ctx.createRadialGradient(0,0,2,0,0,R*3.3);
+    halo.addColorStop(0,'rgba(45,212,191,.24)'); halo.addColorStop(.5,'rgba(45,212,191,.07)'); halo.addColorStop(1,'rgba(45,212,191,0)');
+    ctx.beginPath(); ctx.arc(0,0,R*3.3,0,Math.PI*2); ctx.fillStyle=halo; ctx.fill();
+    // 24 段仪表刻度环，随进度逐段点亮
+    for(let i=0;i<24;i++){
+      const a0=rad(i*15)+t*0.16, a1=a0+rad(9);
+      ctx.beginPath(); ctx.arc(0,0,R*1.44*breathe,a0,a1);
+      const lit = p>0 && (i/24) < p;
+      ctx.strokeStyle = lit ? 'rgba(110,240,220,1)' : 'rgba(45,212,191,.30)';
+      ctx.lineWidth = lit?2.4:1.9; ctx.lineCap='round';
+      if(lit){ ctx.shadowColor=C.teal; ctx.shadowBlur=8; }
+      ctx.stroke(); ctx.shadowBlur=0;
+    }
+    // 主环
+    ctx.beginPath(); ctx.arc(0,0,R*breathe,0,Math.PI*2);
+    ctx.strokeStyle='rgba(45,212,191,.9)'; ctx.lineWidth=1.6; ctx.stroke();
+    // 内填充
+    const fill=ctx.createRadialGradient(0,0,1,0,0,R);
+    fill.addColorStop(0,`rgba(45,212,191,${0.05+p*0.20})`); fill.addColorStop(1,'rgba(45,212,191,0)');
+    ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2); ctx.fillStyle=fill; ctx.fill();
+    // 准星
+    ctx.strokeStyle='rgba(45,212,191,.5)'; ctx.lineWidth=1;
+    [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dx,dy])=>{
+      ctx.beginPath(); ctx.moveTo(dx*R*0.30,dy*R*0.30); ctx.lineTo(dx*R*0.64,dy*R*0.64); ctx.stroke();
+    });
+    ctx.beginPath(); ctx.arc(0,0,2.2,0,Math.PI*2); ctx.fillStyle=C.teal; ctx.fill();
+    ctx.restore();
+  }
+  function drawBall(){
+    // 拖尾
+    for(let i=0;i<trail.length;i++){
+      const p=trail[i], k=(i+1)/trail.length;
+      ctx.beginPath(); ctx.arc(p.x,p.y,ball.r*k*0.75,0,Math.PI*2);
+      ctx.fillStyle=`rgba(56,189,248,${0.05+k*0.13})`; ctx.fill();
+    }
+    // 接触阴影
+    const sh=ctx.createRadialGradient(ball.x,ball.y+ball.r*0.8,1,ball.x,ball.y+ball.r*0.8,ball.r*1.6);
+    sh.addColorStop(0,'rgba(0,0,0,.55)'); sh.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.beginPath(); ctx.ellipse(ball.x,ball.y+ball.r*0.8,ball.r*1.35,ball.r*0.5,0,0,Math.PI*2);
+    ctx.fillStyle=sh; ctx.fill();
+    // 本体
+    const g=ctx.createRadialGradient(ball.x-ball.r*0.38,ball.y-ball.r*0.42,ball.r*0.08,ball.x,ball.y,ball.r*1.12);
+    g.addColorStop(0,'#ffffff'); g.addColorStop(0.3,'#a5f3fc'); g.addColorStop(0.72,'#0e7490'); g.addColorStop(1,'#062c3c');
+    ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+    // 边缘光
+    ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.r-0.6,0,Math.PI*2);
+    ctx.strokeStyle='rgba(224,242,254,.55)'; ctx.lineWidth=1.1; ctx.stroke();
+    // 高光
+    ctx.beginPath(); ctx.ellipse(ball.x-ball.r*0.33,ball.y-ball.r*0.4,ball.r*0.3,ball.r*0.19,-0.7,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,255,255,.92)'; ctx.fill();
+    // 底部环境反射
+    const rf=ctx.createRadialGradient(ball.x,ball.y+ball.r*0.52,1,ball.x,ball.y+ball.r*0.52,ball.r*0.85);
+    rf.addColorStop(0,'rgba(147,217,255,.45)'); rf.addColorStop(1,'rgba(147,217,255,0)');
+    ctx.beginPath(); ctx.arc(ball.x,ball.y+ball.r*0.5,ball.r*0.7,0,Math.PI*2); ctx.fillStyle=rf; ctx.fill();
+  }
+  function draw(){
+    const t=state.elapsed;
+    drawBackground();
+    for(const h of holes) drawHole(h,t);
+    for(const c of coins) if(c.on) drawCoin(c,t);
+    drawGoal(t,clamp(hold/C.goalHold,0,1));
+    drawBall();
+    for(const s of sparks){
+      ctx.globalAlpha=clamp(s.life/s.max,0,1);
+      ctx.beginPath(); ctx.arc(s.x,s.y,2.4,0,Math.PI*2); ctx.fillStyle='#fde68a'; ctx.fill();
+    }
+    ctx.globalAlpha=1;
+    glassSheen(); postFX();
+  }
+  function enter(lv){
+    layoutFor(lv||0);
+    dom.hud.innerHTML=`<span style="color:${C.muted}">LEVEL 1</span>  倾斜手机，把青球滚进绿环`;
+    draw();
+  }
+  return {
+    update, enter,
+    nextLevel(){ layoutFor(Math.min(level+1,2)); hideOverlay(); },
+    retry(){ layoutFor(level); hideOverlay(); }
+  };
+})();
+
+/* =====================================================================
+   GAME 2 · 灯塔号
+   ===================================================================== */
+const beacon=(function(){
+  let level,target,lockT,flash=0;
+  function pick(lv){
+    const [a,b]=C.beacon.levels[lv%C.beacon.levels.length];
+    return rnd(Math.min(a,b),Math.max(a,b));
+  }
+  function enter(){
+    level=0; lockT=0; flash=0;
+    target=pick(0);
+    state.cal.alpha=state.pose.alpha;
+    dom.hud.innerHTML='慢慢转身，把信号点转到正上方';
+  }
+  function update(dt){
+    const W=state.W,H=state.H,cx=W/2,cy=H/2,R=Math.min(W,H)*0.365;
+    const heading=state.touchMode?state.pad.x*180:wrap180(state.pose.alpha-state.cal.alpha);
+    const err=wrap180(target-heading);
+    if(flash>0) flash=Math.max(0,flash-dt*1.6);
+
+    if(Math.abs(err)<C.beacon.lockDeg){
+      lockT+=dt;
+      if(lockT>=C.beacon.need){
+        flash=1;
+        showOverlay(overlayCard('◉','信号锁定','第 '+(level+1)+' 座灯塔已点亮','继续','next',C.teal));
+        lockT=0;
+      }
+    } else lockT=Math.max(0,lockT-dt*1.3);
+
+    /* ---- 底色 ---- */
+    const bg=ctx.createRadialGradient(cx,cy*0.9,10,cx,cy,Math.max(W,H)*0.8);
+    bg.addColorStop(0,'#0a2036'); bg.addColorStop(0.5,'#061421'); bg.addColorStop(1,'#03070d');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+    ctx.save(); ctx.translate(cx,cy);
+
+    /* ---- 同心圈 ---- */
+    for(let i=1;i<=4;i++){
+      ctx.beginPath(); ctx.arc(0,0,R*i/4,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(56,189,248,${0.09+ (i===4?0.06:0)})`; ctx.lineWidth=1; ctx.stroke();
+    }
+    /* ---- 十字轴 ---- */
+    ctx.strokeStyle='rgba(56,189,248,.10)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(-R,0); ctx.lineTo(R,0); ctx.moveTo(0,-R); ctx.lineTo(0,R); ctx.stroke();
+
+    /* ---- 外圈刻度（随真实朝向旋转） ---- */
+    ctx.save(); ctx.rotate(-rad(state.pose.alpha||0));
+    for(let i=0;i<72;i++){
+      const a=rad(i*5), major=(i%9===0), mid=(i%3===0);
+      const len=major?12:(mid?7:4);
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a)*R, Math.sin(a)*R);
+      ctx.lineTo(Math.cos(a)*(R+len), Math.sin(a)*(R+len));
+      ctx.strokeStyle=major?'rgba(148,180,210,.55)':'rgba(148,180,210,.16)';
+      ctx.lineWidth=major?1.6:1; ctx.stroke();
+    }
+    ctx.fillStyle='rgba(148,180,210,.5)';
+    ctx.font='600 10px ui-monospace,monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ['N','E','S','W'].forEach((s,i)=>{
+      const a=rad(i*90-90);
+      ctx.fillText(s, Math.cos(a)*(R+26), Math.sin(a)*(R+26));
+    });
+    ctx.restore();
+
+    /* ---- 雷达扫掠 ---- */
+    const sw=(state.elapsed*0.85)%(Math.PI*2);
+    for(let i=0;i<40;i++){
+      const a=sw-i*0.017;
+      ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,R,a-0.018,a);
+      ctx.fillStyle=`rgba(86,204,255,${0.15*Math.pow(1-i/40,1.7)})`; ctx.fill();
+    }
+    // 扫掠前缘亮线
+    ctx.beginPath(); ctx.moveTo(0,0);
+    ctx.lineTo(Math.cos(sw)*R, Math.sin(sw)*R);
+    ctx.strokeStyle='rgba(147,217,255,.35)'; ctx.lineWidth=1; ctx.stroke();
+
+    /* ---- 目标方位 ---- */
+    const near=Math.abs(err)<C.beacon.lockDeg;
+    const ta=rad(err-90);
+    const tx=Math.cos(ta)*R*0.74, ty=Math.sin(ta)*R*0.74;
+    const pulse=1+Math.sin(state.elapsed*3.4)*0.12;
+    [1,0.62,0.38].forEach(k=>{
+      const rr=(near?30:21)*pulse*k;
+      const g2=ctx.createRadialGradient(tx,ty,1,tx,ty,rr);
+      g2.addColorStop(0, near?'rgba(45,212,191,.40)':'rgba(251,191,36,.26)');
+      g2.addColorStop(1,'rgba(0,0,0,0)');
+      ctx.beginPath(); ctx.arc(tx,ty,rr,0,Math.PI*2); ctx.fillStyle=g2; ctx.fill();
+    });
+    ctx.beginPath(); ctx.arc(tx,ty,near?6.5:5,0,Math.PI*2);
+    ctx.fillStyle=near?C.teal:C.gold; ctx.fill();
+    // 从中心到目标的细线
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(tx,ty);
+    ctx.setLineDash([3,5]); ctx.strokeStyle=near?'rgba(45,212,191,.5)':'rgba(251,191,36,.22)';
+    ctx.lineWidth=1; ctx.stroke(); ctx.setLineDash([]);
+
+    /* ---- 锁定进度环 ---- */
+    const prog=clamp(lockT/C.beacon.need,0,1);
+    ctx.beginPath(); ctx.arc(0,0,R*1.0,-Math.PI/2,-Math.PI/2+Math.PI*2*prog);
+    ctx.strokeStyle=C.teal; ctx.lineWidth=3.5; ctx.lineCap='round';
+    ctx.shadowColor=C.teal; ctx.shadowBlur=14; ctx.stroke(); ctx.shadowBlur=0;
+
+    /* ---- 中心指针 ---- */
+    ctx.beginPath();
+    ctx.moveTo(0,-R*0.34); ctx.lineTo(-10,R*0.14); ctx.lineTo(0,R*0.06); ctx.lineTo(10,R*0.14);
+    ctx.closePath();
+    const ng=ctx.createLinearGradient(0,-R*0.34,0,R*0.14);
+    ng.addColorStop(0,'#f0f9ff'); ng.addColorStop(1,'#64748b');
+    ctx.fillStyle=ng; ctx.fill();
+    ctx.beginPath(); ctx.arc(0,0,3.5,0,Math.PI*2); ctx.fillStyle=C.sky; ctx.fill();
+    ctx.beginPath(); ctx.arc(0,0,7,0,Math.PI*2); ctx.strokeStyle='rgba(56,189,248,.5)'; ctx.lineWidth=1; ctx.stroke();
+
+    ctx.restore();
+
+    /* ---- 锁定闪光 ---- */
+    if(flash>0){
+      ctx.fillStyle=`rgba(45,212,191,${flash*0.18})`; ctx.fillRect(0,0,W,H);
+    }
+    glassSheen(); postFX();
+
+    dom.hud.innerHTML=
+      `<span style="color:${C.muted}">BEACON ${level+1}/5</span>  `
+      +`<span style="color:${near?C.teal:'#a8b6c9'}">偏差 ${Math.round(Math.abs(err))}°</span>  `
+      + (lockT>0 ? `<span style="color:${C.teal}">锁定 ${lockT.toFixed(1)}s</span>`
+                 : `<span style="color:${C.muted}">${err>0?'向右转':'向左转'}</span>`);
+  }
+  function next(){
+    hideOverlay();
+    if(level+1>=C.beacon.levels.length){
+      showOverlay(overlayCard('✦','全部点亮','五座灯塔的信号均已接收','回主屏','menu',C.sky));
+      return;
+    }
+    level++;
+    state.cal.alpha=state.pose.alpha;
+    target=pick(level); lockT=0;
+  }
+  return { update, enter, next };
+})();
+
+/* =====================================================================
+   GAME 3 · 无接触密室
+   ===================================================================== */
+const room=(function(){
+  let idx=0, hold=0, spin=0, shakes=0, lastSide=0, calm=0, passed=false, spinPrev=undefined;
+
+  const rooms=[
+    { id:'down', name:'扣屏', hint:'把屏幕朝下扣住，保持 1 秒', glyph:'down' },
+    { id:'up',   name:'举天', hint:'把手机竖起来举高，稳住 1.5 秒', glyph:'up' },
+    { id:'spin', name:'大回环', hint:'握着手机原地转一整圈', glyph:'spin' },
+    { id:'still',name:'定身', hint:'放平手机，一动画都不要有，坚持 2 秒', glyph:'still' },
+    { id:'shake',name:'翻面三连', hint:'快速翻过来再翻回去，做 3 次', glyph:'shake' }
+  ];
+  const cur=()=>rooms[idx];
+  function reset(){ hold=0; spin=0; shakes=0; calm=0; passed=false; lastSide=0; spinPrev=undefined; }
+  function enter(){ idx=0; reset(); hideOverlay(); }
+
+  function check(id,dt){
+    const b=state.pose.beta;
+    if(id==='down'){
+      const on=Math.abs(wrap180(b))>90+C.flipDeg;
+      hold=on?hold+dt:Math.max(0,hold-dt*2);
+      return hold>=C.room.holdQuick;
+    }
+    if(id==='up'){
+      const on=Math.abs(Math.abs(b)-90)<30;
+      hold=on?hold+dt:Math.max(0,hold-dt*2);
+      return hold>=C.room.holdQuick*1.4;
+    }
+    if(id==='spin'){
+      if(spinPrev===undefined) spinPrev=state.pose.alpha;
+      spin+=Math.abs(wrap180(state.pose.alpha-spinPrev));
+      spinPrev=state.pose.alpha;
+      return spin>=C.room.spinTotal;
+    }
+    if(id==='still'){
+      const on=state.pose.dAbsA<0.28;
+      calm=on?calm+dt:Math.max(0,calm-dt*2);
+      return calm>=C.room.holdSlow*0.9;
+    }
+    if(id==='shake'){
+      const side=b>0?1:-1;
+      if(lastSide!==0&&side!==lastSide) shakes++;
+      lastSide=side;
+      return shakes>=C.room.shakes;
+    }
+    return false;
+  }
+  function progress(){
+    const id=cur().id;
+    if(id==='down') return clamp(hold/C.room.holdQuick,0,1);
+    if(id==='up') return clamp(hold/(C.room.holdQuick*1.4),0,1);
+    if(id==='spin') return clamp(spin/C.room.spinTotal,0,1);
+    if(id==='still') return clamp(calm/(C.room.holdSlow*0.9),0,1);
+    return clamp(shakes/C.room.shakes,0,1);
+  }
+
+  /* ---- 矢量图标 ---- */
+  function glyph(kind,cx,cy,s,color){
+    ctx.save(); ctx.translate(cx,cy);
+    ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=2.2;
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    if(kind==='down'){
+      ctx.beginPath(); ctx.moveTo(0,-s); ctx.lineTo(0,s*0.55); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-s*0.5,s*0.05); ctx.lineTo(0,s*0.6); ctx.lineTo(s*0.5,s*0.05); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-s*0.72,s*0.95); ctx.lineTo(s*0.72,s*0.95); ctx.stroke();
+    } else if(kind==='up'){
+      ctx.beginPath(); ctx.moveTo(0,s); ctx.lineTo(0,-s*0.55); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-s*0.5,-s*0.05); ctx.lineTo(0,-s*0.6); ctx.lineTo(s*0.5,-s*0.05); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-s*0.72,-s*0.95); ctx.lineTo(s*0.72,-s*0.95); ctx.stroke();
+    } else if(kind==='spin'){
+      ctx.beginPath(); ctx.arc(0,0,s*0.72,rad(-60),rad(230)); ctx.stroke();
+      const a=rad(-60), px=Math.cos(a)*s*0.72, py=Math.sin(a)*s*0.72;
+      ctx.beginPath(); ctx.moveTo(px,py); ctx.lineTo(px-s*0.34,py-s*0.12); ctx.lineTo(px+s*0.06,py-s*0.4);
+      ctx.closePath(); ctx.fill();
+    } else if(kind==='still'){
+      ctx.beginPath(); ctx.arc(0,0,s*0.3,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0,0,s*0.68,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0,0,s*0.98,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0,0,s*0.1,0,Math.PI*2); ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.moveTo(-s*0.86,0); ctx.lineTo(s*0.86,0); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-s*0.86,0); ctx.lineTo(-s*0.5,-s*0.34); ctx.moveTo(-s*0.86,0); ctx.lineTo(-s*0.5,s*0.34); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(s*0.86,0); ctx.lineTo(s*0.5,-s*0.34); ctx.moveTo(s*0.86,0); ctx.lineTo(s*0.5,s*0.34); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawRing(p){
+    const W=state.W,H=state.H,cx=W/2,cy=H/2*0.94,R=Math.min(W,H)*0.30;
+    const bg=ctx.createRadialGradient(cx,cy,10,cx,cy,Math.max(W,H)*0.75);
+    bg.addColorStop(0,'#0a2230'); bg.addColorStop(0.55,'#06121c'); bg.addColorStop(1,'#03080e');
+    ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+    ctx.save(); ctx.translate(cx,cy);
+    // 轨道
+    ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2);
+    ctx.strokeStyle='rgba(148,180,210,.13)'; ctx.lineWidth=11; ctx.stroke();
+    // 轨道内细刻度
+    for(let i=0;i<60;i++){
+      const a=rad(i*6);
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a)*(R-11),Math.sin(a)*(R-11));
+      ctx.lineTo(Math.cos(a)*(R-15),Math.sin(a)*(R-15));
+      ctx.strokeStyle='rgba(148,180,210,.10)'; ctx.lineWidth=1; ctx.stroke();
+    }
+    // 进度弧
+    if(p>0){
+      const g=ctx.createLinearGradient(-R,-R,R,R);
+      g.addColorStop(0,C.sky); g.addColorStop(1,p>=1?C.teal:C.sky);
+      ctx.beginPath(); ctx.arc(0,0,R,-Math.PI/2,-Math.PI/2+Math.PI*2*p);
+      ctx.strokeStyle=g; ctx.lineWidth=11; ctx.lineCap='round';
+      ctx.shadowColor=p>=1?C.teal:C.sky; ctx.shadowBlur=18; ctx.stroke(); ctx.shadowBlur=0;
+    }
+    // 图标
+    glyph(cur().glyph,0,-4,R*0.30,p>=1?C.teal:'#cfe3f5');
+    // 百分比
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font='600 17px ui-monospace,monospace';
+    ctx.fillStyle=p>=1?C.teal:'#8fa6bf';
+    ctx.fillText(Math.round(p*100)+'%',0,R*0.50);
+    ctx.restore();
+
+    /* ---- 姿态仪表 ---- */
+    const bx=W*0.14, bw=W*0.72, by=H-46;
+    const bars=[
+      ['β', wrap180(state.pose.beta), '#7dd3fc'],
+      ['γ', state.pose.gamma, C.teal],
+      ['α', ((state.pose.alpha%360)+360)%360, C.gold]
+    ];
+    bars.forEach(([label,val,color],i)=>{
+      const y=by+i*13;
+      ctx.beginPath(); ctx.moveTo(bx,y); ctx.lineTo(bx+bw,y);
+      ctx.strokeStyle='rgba(148,180,210,.12)'; ctx.lineWidth=2; ctx.lineCap='round'; ctx.stroke();
+      const norm=clamp((val+180)/360,0,1);
+      const px=bx+bw*norm;
+      ctx.beginPath(); ctx.moveTo(bx,y); ctx.lineTo(px,y);
+      ctx.strokeStyle=color; ctx.lineWidth=2; ctx.stroke();
+      ctx.beginPath(); ctx.arc(px,y,2.4,0,Math.PI*2); ctx.fillStyle=color; ctx.fill();
+      ctx.font='9px ui-monospace,monospace'; ctx.textAlign='left';
+      ctx.fillStyle='rgba(148,180,210,.55)';
+      ctx.fillText(label, bx-12, y+1);
+    });
+    glassSheen(); postFX();
+  }
+
+  function update(dt){
+    if(!passed && check(cur().id,dt)){
+      passed=true;
+      showOverlay(overlayCard('◈',cur().name+' · 通过','','下一个房间','next',C.teal));
+    }
+    drawRing(passed?1:progress());
+    dom.hud.innerHTML=
+      `<span style="color:${C.muted}">ROOM ${idx+1}/5</span>  `
+      +`<span style="color:${C.teal}">${cur().name}</span>  `
+      +`<span style="color:${C.muted}">${cur().hint}</span>`;
+  }
+  function next(){
+    hideOverlay();
+    if(idx+1>=rooms.length){
+      showOverlay(overlayCard('✦','密室通关','五道姿态口令全部完成','回主屏','menu',C.sky));
+      return;
+    }
+    idx++; reset();
+  }
+  function simulate(){
+    const id=cur().id;
+    if(id==='down'||id==='up') hold=99;
+    else if(id==='spin') spin=C.room.spinTotal;
+    else if(id==='still') calm=99;
+    else shakes=C.room.shakes;
+  }
+  return { update, enter, next, retry(){idx=0;reset();hideOverlay();}, simulate };
+})();
+
+/* ==================== 触屏兜底 ==================== */
+function bindPad(){
+  let active=false;
+  function set(e){
+    const r=dom.pad.getBoundingClientRect();
+    const p=e.touches?e.touches[0]:e;
+    const x=clamp((p.clientX-r.left)/r.width,0,1);
+    const y=clamp((p.clientY-r.top)/r.height,0,1);
+    state.pad.x=(x-0.5)*2; state.pad.y=(y-0.5)*2;
+    dom.knob.style.left=(x*100)+'%';
+    dom.knob.style.top=(y*100)+'%';
+  }
+  dom.pad.addEventListener('pointerdown',e=>{active=true;dom.pad.setPointerCapture(e.pointerId);set(e);});
+  dom.pad.addEventListener('pointermove',e=>{if(!active)return;e.preventDefault();set(e);});
+  const end=()=>{active=false;state.pad.x=0;state.pad.y=0;
+    dom.knob.style.left='50%';dom.knob.style.top='50%';};
+  dom.pad.addEventListener('pointerup',end);
+  dom.pad.addEventListener('pointercancel',end);
+}
+function bindActButton(){
+  dom.actBtn.addEventListener('pointerdown',e=>{e.preventDefault();
+    dom.actBtn.style.opacity='.65'; room.simulate();});
+  const up=()=>dom.actBtn.style.opacity='1';
+  dom.actBtn.addEventListener('pointerup',up);
+  dom.actBtn.addEventListener('pointercancel',up);
+  dom.actBtn.addEventListener('pointerleave',up);
+}
+
+/* ==================== 覆盖层按钮 ==================== */
+dom.overlay.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const a=b.getAttribute('data-act');
+  if(a==='menu') goMenu();
+  else if(a==='retry'){ if(state.game==='sand') sand.retry(); else room.retry(); }
+  else if(a==='next'){ if(state.game==='sand') sand.nextLevel(); else if(state.game==='beacon') beacon.next(); else room.next(); }
+});
+
+/* ==================== 进入游戏 ==================== */
+function enterGame(key){
+  state.game=key;
+  dom.menu.classList.add('hidden');
+  dom.game.classList.remove('hidden');
+  hideOverlay();
+  fitCanvas();
+  if(state.raw.beta!=null){
+    state.pose.beta=state.raw.beta;
+    state.pose.gamma=state.raw.gamma;
+    if(state.raw.alpha!=null) state.pose.alpha=state.raw.alpha;
+  }
+  state.cal.beta=state.pose.beta;
+  state.cal.gamma=state.pose.gamma;
+  state.cal.alpha=state.pose.alpha;
+
+  dom.padWrap.classList.toggle('hidden', !state.touchMode || key==='room');
+  dom.actWrap.classList.toggle('hidden', !state.touchMode || key!=='room');
+
+  if(key==='sand'){ dom.title.textContent='重力沙盘'; dom.sub.textContent='倾斜手机移动小球'; sand.enter(0); }
+  else if(key==='beacon'){ dom.title.textContent='灯塔号'; dom.sub.textContent='用真实朝向锁定信号源'; beacon.enter(); }
+  else { dom.title.textContent='无接触密室'; dom.sub.textContent='照做动作口令即可'; room.enter(); }
+  startLoop();
+}
+
+/* ==================== INIT ==================== */
+function init(){
+  paintLEDs();
+  dom.auth.addEventListener('click',bootSensors);
+  dom.chk.addEventListener('change',e=>enableTouch(e.target.checked));
+  dom.back.addEventListener('click',goMenu);
+  document.querySelectorAll('[data-game]').forEach(b=>{
+    b.addEventListener('click',()=>enterGame(b.getAttribute('data-game')));
+  });
+  bindPad(); bindActButton();
+  window.addEventListener('resize',()=>{ if(state.game) fitCanvas(); });
+  window.addEventListener('orientationchange',()=>setTimeout(()=>{ if(state.game) fitCanvas(); },250));
+  document.addEventListener('visibilitychange',()=>{
+    if(document.hidden) stopLoop(); else if(state.game) startLoop();
+  });
+  window.addEventListener('keydown',e=>{ if(e.key==='Escape'&&state.game) goMenu(); });
+  setInterval(paintLEDs,1200);
+
+  /* #region 自测入口：?sim=1 模拟传感器，?g=sand|beacon|room 直达 */
+  const qs=new URLSearchParams(location.search);
+  if(qs.get('sim')){
+    setInterval(()=>{
+      onOrientation({beta:14+rnd(-1.5,1.5), gamma:-10+rnd(-1.5,1.5), alpha:(Date.now()/40)%360});
+      state.raw.absA=9.8+rnd(-0.06,0.06); state.raw.hasMot=true; state.raw.tMot=performance.now();
+    },50);
+  }
+  const g0=qs.get('g');
+  if(g0) enterGame(g0==='beacon'?'beacon':g0==='room'?'room':'sand');
+  /* #endregion */
+}
+document.addEventListener('DOMContentLoaded',init);
+})();
+</script>
+</body>
+</html>
