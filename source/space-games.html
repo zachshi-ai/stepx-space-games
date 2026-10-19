@@ -15,6 +15,7 @@
   html,body{height:100%;background:var(--bg0);-webkit-tap-highlight-color:transparent;overscroll-behavior:none;}
   body{font-family:system-ui,-apple-system,"PingFang SC","Noto Sans SC","Helvetica Neue",sans-serif;color:var(--ink);}
   canvas{touch-action:none;user-select:none;-webkit-user-select:none;display:block;}
+  #pad{touch-action:none;-webkit-user-select:none;user-select:none;}
   .mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace;}
   .track{letter-spacing:.22em;}
   .card{position:relative;transition:transform .18s cubic-bezier(.2,.8,.3,1),border-color .18s;}
@@ -124,7 +125,7 @@
     </button>
   </div>
 
-  <p class="text-center text-[10px] text-[#4a5a70] mt-5 leading-relaxed">站着玩、手举到胸口高度，姿态判读最准<br><span class="mono text-[#33404f]">版本 v1.0.5</span></p>
+  <p class="text-center text-[10px] text-[#4a5a70] mt-5 leading-relaxed">站着玩、手举到胸口高度，姿态判读最准<br><span class="mono text-[#33404f]">版本 v1.0.6</span></p>
 </div>
 <!-- #endregion -->
 
@@ -147,8 +148,13 @@
   </div>
   <div id="pad-wrap" class="mt-3 hidden">
     <div class="text-[10px] text-[color:var(--muted)] mb-1.5 track mono uppercase">触屏兜底</div>
-    <div id="pad" class="relative w-full h-24 rounded-xl border border-[color:var(--line)]" style="background:linear-gradient(180deg,#0b1523,#070d17)">
-      <div id="pad-knob" class="absolute w-8 h-8 -ml-4 -mt-4 rounded-full border border-[rgba(56,189,248,.5)]" style="left:50%;top:50%;background:radial-gradient(circle at 35% 30%,#7dd3fc,#0369a1);box-shadow:0 0 18px rgba(56,189,248,.45)"></div>
+    <div id="pad" class="relative w-full h-32 rounded-xl border border-[color:var(--line)] overflow-hidden" style="background:linear-gradient(180deg,#0b1523,#070d17)">
+      <div class="absolute left-1/2 top-0 bottom-0 w-px" style="background:rgba(148,163,184,.12)"></div>
+      <div class="absolute top-1/2 left-0 right-0 h-px" style="background:rgba(148,163,184,.12)"></div>
+      <div class="absolute inset-0 grid place-items-center pointer-events-none">
+        <span class="text-[10px] text-[#3d4c60] mono">按住并拖动</span>
+      </div>
+      <div id="pad-knob" class="absolute w-9 h-9 -ml-[18px] -mt-[18px] rounded-full border border-[rgba(56,189,248,.55)]" style="left:50%;top:50%;background:radial-gradient(circle at 35% 30%,#7dd3fc,#0369a1);box-shadow:0 0 20px rgba(56,189,248,.5)"></div>
     </div>
   </div>
   <div id="act-wrap" class="mt-3 hidden">
@@ -1094,24 +1100,80 @@ const room=(function(){
   return { update, enter, next, retry(){idx=0;reset();hideOverlay();}, simulate };
 })();
 
+/* ==================== 触屏兜底：画布直接拖动 ==================== */
+function bindCanvasDrag(){
+  let active=false, sx=0, sy=0, pid=null;
+  const reset=()=>{
+    active=false; pid=null;
+    state.pad.x=0; state.pad.y=0;
+    dom.knob.style.left='50%'; dom.knob.style.top='50%';
+  };
+  cv.addEventListener('pointerdown', e=>{
+    if(!state.touchMode || state.game!=='sand') return;
+    e.preventDefault(); active=true; pid=e.pointerId; sx=e.clientX; sy=e.clientY;
+    try{ cv.setPointerCapture(pid); }catch(_){}
+  }, {passive:false});
+  cv.addEventListener('pointermove', e=>{
+    if(!active || state.game!=='sand') return;
+    e.preventDefault();
+    const r=cv.getBoundingClientRect();
+    const dx=clamp((e.clientX-sx)/(r.width*0.32), -1.25, 1.25);
+    const dy=clamp((e.clientY-sy)/(r.height*0.32), -1.25, 1.25);
+    state.pad.x=dx; state.pad.y=dy;
+    dom.knob.style.left=((dx/2.5+0.5)*100)+'%';
+    dom.knob.style.top=((dy/2.5+0.5)*100)+'%';
+  }, {passive:false});
+  cv.addEventListener('pointerup', reset);
+  cv.addEventListener('pointercancel', reset);
+  cv.addEventListener('lostpointercapture', reset);
+}
+
 /* ==================== 触屏兜底 ==================== */
 function bindPad(){
-  let active=false;
-  function set(e){
+  let active=false, pid=null;
+  function set(clientX, clientY){
     const r=dom.pad.getBoundingClientRect();
-    const p=e.touches?e.touches[0]:e;
-    const x=clamp((p.clientX-r.left)/r.width,0,1);
-    const y=clamp((p.clientY-r.top)/r.height,0,1);
-    state.pad.x=(x-0.5)*2; state.pad.y=(y-0.5)*2;
+    const x=clamp((clientX-r.left)/r.width,0,1);
+    const y=clamp((clientY-r.top)/r.height,0,1);
+    // 摇杆位移放大 1.25 倍，手感更跟手；最大 ±1.25
+    state.pad.x=clamp((x-0.5)*2*1.25,-1.25,1.25);
+    state.pad.y=clamp((y-0.5)*2*1.25,-1.25,1.25);
     dom.knob.style.left=(x*100)+'%';
     dom.knob.style.top=(y*100)+'%';
   }
-  dom.pad.addEventListener('pointerdown',e=>{active=true;dom.pad.setPointerCapture(e.pointerId);set(e);});
-  dom.pad.addEventListener('pointermove',e=>{if(!active)return;e.preventDefault();set(e);});
-  const end=()=>{active=false;state.pad.x=0;state.pad.y=0;
+  const end=()=>{active=false;pid=null;state.pad.x=0;state.pad.y=0;
     dom.knob.style.left='50%';dom.knob.style.top='50%';};
-  dom.pad.addEventListener('pointerup',end);
-  dom.pad.addEventListener('pointercancel',end);
+
+  dom.pad.addEventListener('pointerdown', e=>{
+    e.preventDefault(); e.stopPropagation();
+    active=true; pid=e.pointerId;
+    try{ dom.pad.setPointerCapture(pid); }catch(_){}
+    set(e.clientX, e.clientY);
+  }, {passive:false});
+
+  dom.pad.addEventListener('pointermove', e=>{
+    if(!active) return;
+    if(pid!==null && e.pointerId!==pid) return;
+    e.preventDefault();
+    set(e.clientX, e.clientY);
+  }, {passive:false});
+
+  dom.pad.addEventListener('pointerup', e=>{ e.preventDefault(); end(); }, {passive:false});
+  dom.pad.addEventListener('pointercancel', end);
+  dom.pad.addEventListener('lostpointercapture', end);
+  // 触摸事件兜底：部分 WebView 的 pointer 事件不完整
+  dom.pad.addEventListener('touchstart', e=>{
+    if(e.touches.length!==1) return;
+    e.preventDefault(); active=true;
+    set(e.touches[0].clientX, e.touches[0].clientY);
+  }, {passive:false});
+  dom.pad.addEventListener('touchmove', e=>{
+    if(!active || e.touches.length!==1) return;
+    e.preventDefault();
+    set(e.touches[0].clientX, e.touches[0].clientY);
+  }, {passive:false});
+  dom.pad.addEventListener('touchend', e=>{ e.preventDefault(); end(); }, {passive:false});
+  dom.pad.addEventListener('touchcancel', end);
 }
 function bindActButton(){
   dom.actBtn.addEventListener('pointerdown',e=>{e.preventDefault();
@@ -1186,7 +1248,7 @@ function init(){
   document.querySelectorAll('[data-game]').forEach(b=>{
     b.addEventListener('click',()=>enterGame(b.getAttribute('data-game')));
   });
-  bindPad(); bindActButton();
+  bindPad(); bindCanvasDrag(); bindActButton();
   window.addEventListener('resize',()=>{ if(state.game) fitCanvas(); });
   window.addEventListener('orientationchange',()=>setTimeout(()=>{ if(state.game) fitCanvas(); },250));
   document.addEventListener('visibilitychange',()=>{
@@ -1203,6 +1265,7 @@ function init(){
       state.raw.absA=9.8+rnd(-0.06,0.06); state.raw.hasMot=true; state.raw.tMot=performance.now();
     },50);
   }
+  if(qs.get('fb')) enableTouch(true);
   const g0=qs.get('g');
   if(g0) enterGame(g0==='beacon'?'beacon':g0==='room'?'room':'sand');
   /* #endregion */
