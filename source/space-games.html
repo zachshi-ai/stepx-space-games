@@ -157,6 +157,9 @@
 </div>
 <!-- #endregion -->
 
+<div id="toast" class="fixed left-1/2 -translate-x-1/2 top-24 z-50 hidden max-w-[86vw] px-4 py-2.5 rounded-xl text-[12px] leading-relaxed"
+     style="background:rgba(15,26,42,.97);border:1px solid #1b2b3f;color:#cfe0f0;box-shadow:0 14px 34px rgba(0,0,0,.55)"></div>
+
 <script>
 (function(){
 'use strict';
@@ -164,7 +167,7 @@
 /* ==================== CONFIG ==================== */
 const C = {
   gravity: 1500, drag: 0.985, bounce: 0.55, ballR: 16,
-  goalHold: 0.8, tiltFull: 32, flipDeg: 50,
+  goalHold: 0.8, tiltFull: 32, flipDeg: 50, prepTime: 2.4,
   beacon: { lockDeg: 11, need: 1.2, levels: [[60,120],[-140,-70],[20,55],[160,210],[-30,20]] },
   room: { holdQuick:1.0, holdSlow:2.2, spinTotal:360, shakes:3 },
   col: { teal:'#2dd4bf', sky:'#38bdf8', gold:'#fbbf24', rose:'#fb7185',
@@ -239,6 +242,16 @@ function glassSheen(){
   ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
 }
 
+/* ==================== 提示条 ==================== */
+function showToast(msg, ms){
+  const el=document.getElementById('toast');
+  if(!el) return;
+  el.textContent=msg;
+  el.classList.remove('hidden');
+  clearTimeout(showToast._t);
+  showToast._t=setTimeout(()=>el.classList.add('hidden'), ms||3800);
+}
+
 /* ==================== 传感器 ==================== */
 function onOrientation(e){
   if(e.beta==null) return;
@@ -288,12 +301,18 @@ function paintLEDs(){
     </div>`;
   }).join('');
 }
+function syncFallbackPanels(){
+  if(!state.game) return;
+  dom.padWrap.classList.toggle('hidden', !state.touchMode || state.game==='room');
+  dom.actWrap.classList.toggle('hidden', !state.touchMode || state.game!=='room');
+}
 function enableTouch(v){
   state.touchMode=!!v; dom.chk.checked=state.touchMode;
   dom.badge.textContent = state.touchMode?'触屏兜底':'传感器';
   dom.badge.style.borderColor = state.touchMode?'rgba(251,191,36,.35)':'rgba(56,189,248,.35)';
   dom.badge.style.color = state.touchMode?C.gold:C.sky;
   dom.badge.style.background = state.touchMode?'rgba(251,191,36,.08)':'rgba(56,189,248,.08)';
+  syncFallbackPanels();
 }
 function updatePose(dt){
   const r=state.raw;
@@ -356,11 +375,10 @@ function goMenu(){
    GAME 1 · 重力沙盘
    ===================================================================== */
 const sand=(function(){
-  let ball,holes,coins,goal,sparks,hold,status,level,trail=[];
+  let ball,holes,coins,goal,sparks,hold,status,level,trail=[],prep=0;
 
   function layoutFor(lv){
     const W=state.W,H=state.H,cx=W/2,cy=H/2;
-    ball={x:cx,y:cy+H*0.17,vx:0,vy:0,r:C.ballR};
     goal={x:cx,y:cy-H*0.25,r:20};
     sparks=[]; trail=[]; hold=0; status='play';
     const base=[
@@ -371,6 +389,19 @@ const sand=(function(){
     holes=base.map(([fx,fy],i)=>({x:cx+fx*W, y:cy+fy*H, r:15+(i%2)*5, phase:i*1.7}));
     coins=[{x:cx-W*0.30,y:cy+H*0.31,on:true,phase:0.4},
            {x:cx+W*0.30,y:cy-H*0.37,on:true,phase:2.1}];
+    // 出生点必须远离所有黑洞，否则会"一出生就被吸走"
+    const pad=C.ballR+34;
+    const cands=[[0,0.17],[0,0],[0.22,0.24],[-0.22,0.24],[0,-0.05],[0.24,-0.10],[-0.24,-0.10]];
+    let sp={x:cx,y:cy+H*0.17};
+    for(const [fx,fy] of cands){
+      const x=cx+fx*W, y=cy+fy*H;
+      const clear=holes.every(h=>Math.hypot(x-h.x,y-h.y) > h.r+pad)
+                && Math.hypot(x-goal.x,y-goal.y) > goal.r+pad;
+      const inBounds = x>C.ballR+8 && x<W-C.ballR-8 && y>C.ballR+8 && y<H-C.ballR-8;
+      if(clear && inBounds){ sp={x,y}; break; }
+    }
+    ball={x:sp.x,y:sp.y,vx:0,vy:0,r:C.ballR};
+    prep=C.prepTime;
     level=lv;
   }
   function gravity(){
@@ -382,6 +413,15 @@ const sand=(function(){
   }
   function update(dt){
     if(status!=='play'){ draw(); return; }
+    if(prep>0){
+      prep=Math.max(0,prep-dt);
+      ball.vx=0; ball.vy=0;
+      dom.hud.innerHTML=`<span style="color:${C.muted}">LEVEL ${level+1}</span>  `
+        +`<span style="color:${C.teal}">准备 ${Math.ceil(prep)}</span>  `
+        +`<span style="color:${C.muted}">球已就位</span>`;
+      draw();
+      return;
+    }
     const g=gravity();
     ball.vx+=g.x*C.gravity*dt; ball.vy+=g.y*C.gravity*dt;
     const drag=Math.pow(C.drag,dt*60);
@@ -574,11 +614,36 @@ const sand=(function(){
       ctx.beginPath(); ctx.arc(s.x,s.y,2.4,0,Math.PI*2); ctx.fillStyle='#fde68a'; ctx.fill();
     }
     ctx.globalAlpha=1;
+    if(prep>0) drawPrep();
     glassSheen(); postFX();
+  }
+  function drawPrep(){
+    const W=state.W,H=state.H,cx=W/2,cy=ball.y-H*0.13;
+    const p=clamp(prep/C.prepTime,0,1);
+    const R=Math.min(W,H)*0.075*(0.55+0.45*p);
+    ctx.save();
+    // 出生点光圈
+    const halo=ctx.createRadialGradient(ball.x,ball.y,1,ball.x,ball.y,C.ballR*3.2);
+    halo.addColorStop(0,`rgba(45,212,191,${0.10+0.16*p})`);
+    halo.addColorStop(1,'rgba(45,212,191,0)');
+    ctx.beginPath(); ctx.arc(ball.x,ball.y,C.ballR*3.2,0,Math.PI*2); ctx.fillStyle=halo; ctx.fill();
+    // 收缩环
+    ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
+    ctx.strokeStyle='rgba(45,212,191,.85)'; ctx.lineWidth=2.6;
+    ctx.shadowColor=C.teal; ctx.shadowBlur=14; ctx.stroke(); ctx.shadowBlur=0;
+    // 数字
+    ctx.fillStyle='#e8eef7'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font='600 28px ui-monospace,monospace';
+    ctx.fillText(String(Math.max(1,Math.ceil(prep))), cx, cy);
+    // 文字
+    ctx.font='500 11px system-ui,sans-serif';
+    ctx.fillStyle='rgba(232,238,247,.55)';
+    ctx.fillText('握稳手机', cx, cy+R+16);
+    ctx.restore();
   }
   function enter(lv){
     layoutFor(lv||0);
-    dom.hud.innerHTML=`<span style="color:${C.muted}">LEVEL 1</span>  倾斜手机，把青球滚进绿环`;
+    dom.hud.innerHTML=`<span style="color:${C.muted}">LEVEL 1</span>  <span style="color:${C.teal}">准备</span>  握稳手机，稍后开始`;
     draw();
   }
   return {
@@ -955,18 +1020,38 @@ function enterGame(key){
   state.cal.gamma=state.pose.gamma;
   state.cal.alpha=state.pose.alpha;
 
-  dom.padWrap.classList.toggle('hidden', !state.touchMode || key==='room');
-  dom.actWrap.classList.toggle('hidden', !state.touchMode || key!=='room');
+  syncFallbackPanels();
 
   if(key==='sand'){ dom.title.textContent='重力沙盘'; dom.sub.textContent='倾斜手机移动小球'; sand.enter(0); }
   else if(key==='beacon'){ dom.title.textContent='灯塔号'; dom.sub.textContent='用真实朝向锁定信号源'; beacon.enter(); }
   else { dom.title.textContent='无接触密室'; dom.sub.textContent='照做动作口令即可'; room.enter(); }
   startLoop();
+
+  // 进游戏后若仍读不到姿态数据，自动切兜底并说明，避免"看起来像 bug"
+  clearTimeout(enterGame._check);
+  enterGame._check=setTimeout(()=>{
+    if(state.game && !state.raw.hasOri && !state.touchMode){
+      enableTouch(true);
+      showToast('没有读到传感器数据，已切换到触屏兜底。回主屏点「启用」可重试。', 5200);
+    }
+  }, 2600);
 }
 
 /* ==================== INIT ==================== */
 function init(){
   paintLEDs();
+  // 自动开始监听：Android WebView 与桌面浏览器不需要用户手势，只有 iOS 才需要按钮授权
+  (function autoSensor(){
+    const hasOri = typeof window.DeviceOrientationEvent!=='undefined';
+    const needPerm = hasOri && typeof DeviceOrientationEvent.requestPermission==='function';
+    if(hasOri && !needPerm){
+      attachSensors();
+      dom.auth.textContent='监听中';
+      dom.auth.disabled=true;
+    } else if(!hasOri){
+      enableTouch(true);
+    }
+  })();
   dom.auth.addEventListener('click',bootSensors);
   dom.chk.addEventListener('change',e=>enableTouch(e.target.checked));
   dom.back.addEventListener('click',goMenu);
