@@ -36,7 +36,7 @@
   <header class="pt-8 pb-5 rise">
     <div class="flex items-center gap-2 mb-4">
       <span class="leddot" style="background:var(--teal);box-shadow:0 0 8px var(--teal)"></span>
-      <span class="text-[10px] text-[color:var(--muted)] track mono uppercase">Spatial Sensor Lab</span>
+      <span class="text-[10px] text-[color:var(--muted)] track mono uppercase">空间交互实验室</span>
     </div>
     <h1 class="text-[34px] leading-[1.1] font-semibold tracking-tight">掌心沙盘</h1>
     <p class="mt-2 text-[13px] leading-relaxed text-[color:var(--muted)]">
@@ -46,7 +46,7 @@
 
   <section class="rounded-2xl glass border border-[color:var(--line)] p-4 mb-4 rise d1">
     <div class="flex items-center justify-between mb-3">
-      <span class="text-[10px] track mono uppercase text-[color:var(--muted)]">Sensor Array</span>
+      <span class="text-[10px] track mono uppercase text-[color:var(--muted)]">传感器阵列</span>
       <button id="btn-auth" class="text-[10px] px-2.5 py-1 rounded-md border border-[rgba(56,189,248,.3)] text-[color:var(--sky)] bg-[rgba(56,189,248,.07)] active:scale-95 transition mono">启用</button>
     </div>
     <div class="grid grid-cols-3 gap-2" id="led-row"></div>
@@ -73,7 +73,7 @@
           <p class="mt-1 text-[12px] leading-[1.5] text-[color:var(--muted)]">手机就是托盘。倾斜晃动青球入环，翻面会把重力倒过来。</p>
           <div class="mt-3 flex gap-1.5">
             <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(251,191,36,.22)] text-[rgba(251,191,36,.9)]">加速度计</span>
-            <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(251,191,36,.22)] text-[rgba(251,191,36,.9)]">三关</span>
+            <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(251,191,36,.22)] text-[rgba(251,191,36,.9)]">六关</span>
           </div>
         </div>
       </div>
@@ -95,7 +95,7 @@
           <p class="mt-1 text-[12px] leading-[1.5] text-[color:var(--muted)]">手机是一座罗盘。转身把信号点转到正上方并稳住。</p>
           <div class="mt-3 flex gap-1.5">
             <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(56,189,248,.22)] text-[rgba(56,189,248,.9)]">罗盘朝向</span>
-            <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(56,189,248,.22)] text-[rgba(56,189,248,.9)]">五座灯塔</span>
+            <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(56,189,248,.22)] text-[rgba(56,189,248,.9)]">八座灯塔</span>
           </div>
         </div>
       </div>
@@ -114,10 +114,10 @@
             <span class="text-[16px] font-semibold">无接触密室</span>
             <span class="text-[10px] mono text-[color:var(--muted)]">03</span>
           </div>
-          <p class="mt-1 text-[12px] leading-[1.5] text-[color:var(--muted)]">五道姿态口令：扣屏、举天、转整圈、定身、翻面三连。</p>
+          <p class="mt-1 text-[12px] leading-[1.5] text-[color:var(--muted)]">八道姿态口令：扣屏、举天、转整圈、定身、翻面、长定、画圆、轻叩。</p>
           <div class="mt-3 flex gap-1.5">
             <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(45,212,191,.22)] text-[rgba(45,212,191,.9)]">姿态解谜</span>
-            <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(45,212,191,.22)] text-[rgba(45,212,191,.9)]">五关</span>
+            <span class="text-[9.5px] px-[7px] py-[2.5px] rounded-md border border-[rgba(45,212,191,.22)] text-[rgba(45,212,191,.9)]">八关</span>
           </div>
         </div>
       </div>
@@ -146,7 +146,7 @@
     <div id="overlay" class="absolute inset-0 hidden flex-col items-center justify-center text-center p-7" style="background:radial-gradient(circle at 50% 40%,rgba(5,8,16,.82),rgba(5,8,16,.96))"></div>
   </div>
   <div id="pad-wrap" class="mt-3 hidden">
-    <div class="text-[10px] text-[color:var(--muted)] mb-1.5 track mono uppercase">Touch fallback</div>
+    <div class="text-[10px] text-[color:var(--muted)] mb-1.5 track mono uppercase">触屏兜底</div>
     <div id="pad" class="relative w-full h-24 rounded-xl border border-[color:var(--line)]" style="background:linear-gradient(180deg,#0b1523,#070d17)">
       <div id="pad-knob" class="absolute w-8 h-8 -ml-4 -mt-4 rounded-full border border-[rgba(56,189,248,.5)]" style="left:50%;top:50%;background:radial-gradient(circle at 35% 30%,#7dd3fc,#0369a1);box-shadow:0 0 18px rgba(56,189,248,.45)"></div>
     </div>
@@ -167,8 +167,11 @@
 /* ==================== CONFIG ==================== */
 const C = {
   gravity: 1500, drag: 0.985, bounce: 0.55, ballR: 16,
-  goalHold: 0.8, tiltFull: 32, flipDeg: 50, prepTime: 2.4,
-  beacon: { lockDeg: 11, need: 1.2, levels: [[60,120],[-140,-70],[20,55],[160,210],[-30,20]] },
+  goalHold: 0.8, tiltFull: 32, flipDeg: 50, prepTime: 2.4, sandLevels: 6,
+  beacon: { lockDeg: 11, need: 1.2, levels: [
+    [60,120], [-140,-70], [20,55], [160,210],
+    [-30,20], [-95,-48], [128,176], [-172,-128]
+  ] },
   room: { holdQuick:1.0, holdSlow:2.2, spinTotal:360, shakes:3 },
   col: { teal:'#2dd4bf', sky:'#38bdf8', gold:'#fbbf24', rose:'#fb7185',
          violet:'#a78bfa', ink:'#e8eef7', muted:'#7d8da6', line:'#1b2b3f' }
@@ -384,22 +387,32 @@ const sand=(function(){
     const base=[
       [[-0.26,0.02],[0.26,-0.10]],
       [[-0.30,-0.16],[0.28,0.06],[0,0.14]],
-      [[-0.30,-0.16],[0.30,-0.16],[0,0.10],[-0.14,0.30],[0.14,0.30]]
-    ][clamp(lv,0,2)];
+      [[-0.30,-0.16],[0.30,-0.16],[0,0.10],[-0.14,0.30],[0.14,0.30]],
+      [[-0.28,-0.24],[0.28,-0.24],[-0.30,0.04],[0.30,0.04],[0,0.26]],
+      [[-0.32,-0.28],[0.32,-0.28],[0,-0.02],[-0.20,0.28],[0.20,0.28]],
+      [[-0.34,-0.30],[0.34,-0.30],[-0.34,-0.04],[0.34,-0.04],[-0.16,0.28],[0.16,0.28],[0,-0.02]]
+    ][clamp(lv,0,C.sandLevels-1)];
     holes=base.map(([fx,fy],i)=>({x:cx+fx*W, y:cy+fy*H, r:15+(i%2)*5, phase:i*1.7}));
     coins=[{x:cx-W*0.30,y:cy+H*0.31,on:true,phase:0.4},
            {x:cx+W*0.30,y:cy-H*0.37,on:true,phase:2.1}];
     // 出生点必须远离所有黑洞，否则会"一出生就被吸走"
-    const pad=C.ballR+34;
-    const cands=[[0,0.17],[0,0],[0.22,0.24],[-0.22,0.24],[0,-0.05],[0.24,-0.10],[-0.24,-0.10]];
-    let sp={x:cx,y:cy+H*0.17};
-    for(const [fx,fy] of cands){
+    const pad=C.ballR+30;
+    const okSpot=(x,y)=> x>C.ballR+8 && x<W-C.ballR-8 && y>C.ballR+8 && y<H-C.ballR-8
+      && holes.every(h=>Math.hypot(x-h.x,y-h.y) > h.r+pad)
+      && Math.hypot(x-goal.x,y-goal.y) > goal.r+pad;
+    let sp=null;
+    for(const [fx,fy] of [[0,0.17],[0.18,0.22],[-0.18,0.22],[0,0],[-0.25,0.06],[0.25,0.06],[0,-0.14]]){
       const x=cx+fx*W, y=cy+fy*H;
-      const clear=holes.every(h=>Math.hypot(x-h.x,y-h.y) > h.r+pad)
-                && Math.hypot(x-goal.x,y-goal.y) > goal.r+pad;
-      const inBounds = x>C.ballR+8 && x<W-C.ballR-8 && y>C.ballR+8 && y<H-C.ballR-8;
-      if(clear && inBounds){ sp={x,y}; break; }
+      if(okSpot(x,y)){ sp={x,y}; break; }
     }
+    if(!sp){
+      outer: for(let gy=C.ballR+12; gy<H-C.ballR-12; gy+=22){
+        for(let gx=C.ballR+12; gx<W-C.ballR-12; gx+=22){
+          if(okSpot(gx,gy)){ sp={x:gx,y:gy}; break outer; }
+        }
+      }
+    }
+    if(!sp) sp={x:cx,y:cy};
     ball={x:sp.x,y:sp.y,vx:0,vy:0,r:C.ballR};
     prep=C.prepTime;
     level=lv;
@@ -416,7 +429,7 @@ const sand=(function(){
     if(prep>0){
       prep=Math.max(0,prep-dt);
       ball.vx=0; ball.vy=0;
-      dom.hud.innerHTML=`<span style="color:${C.muted}">LEVEL ${level+1}</span>  `
+      dom.hud.innerHTML=`<span style="color:${C.muted}">第 ${level+1} 关</span>  `
         +`<span style="color:${C.teal}">准备 ${Math.ceil(prep)}</span>  `
         +`<span style="color:${C.muted}">球已就位</span>`;
       draw();
@@ -456,7 +469,10 @@ const sand=(function(){
     else hold=Math.max(0,hold-dt*1.6);
     if(hold>=C.goalHold){
       status='win';
-      showOverlay(overlayCard('◈','进环了','剩余金币 '+coins.filter(c=>c.on).length+' 枚','下一关','next',C.teal));
+      const last = level+1 >= C.sandLevels;
+      showOverlay(last
+        ? overlayCard('✦','六关全部通关','沙盘已清空','回主屏','menu',C.teal)
+        : overlayCard('◈','进环了','剩余金币 '+coins.filter(c=>c.on).length+' 枚','下一关','next',C.teal));
     }
     for(const s of sparks){s.life-=dt;s.x+=s.vx*dt;s.y+=s.vy*dt;s.vy+=320*dt;}
     sparks=sparks.filter(s=>s.life>0);
@@ -466,7 +482,7 @@ const sand=(function(){
 
     const flip=Math.abs(wrap180(state.pose.beta))>90+C.flipDeg;
     dom.hud.innerHTML=
-      `<span style="color:${C.muted}">LEVEL ${level+1}</span>  `
+      `<span style="color:${C.muted}">第 ${level+1} 关</span>  `
       +`<span style="color:${C.gold}">◆ ${coins.filter(c=>c.on).length}</span>  `
       +`<span style="color:${flip?C.sky:C.muted}">${flip?'◐ 重力已翻面':'◑ 屏朝上'}</span>`;
     draw();
@@ -652,12 +668,15 @@ const sand=(function(){
   }
   function enter(lv){
     layoutFor(lv||0);
-    dom.hud.innerHTML=`<span style="color:${C.muted}">LEVEL 1</span>  <span style="color:${C.teal}">准备</span>  握稳手机，稍后开始`;
+    dom.hud.innerHTML=`<span style="color:${C.muted}">第 1 关</span>  <span style="color:${C.teal}">准备</span>  握稳手机，稍后开始`;
     draw();
   }
   return {
     update, enter,
-    nextLevel(){ layoutFor(Math.min(level+1,2)); hideOverlay(); },
+    nextLevel(){
+      if(level+1 >= C.sandLevels){ goMenu(); return; }
+      layoutFor(level+1); hideOverlay();
+    },
     retry(){ layoutFor(level); hideOverlay(); }
   };
 })();
@@ -809,12 +828,12 @@ const beacon=(function(){
     glassSheen(); postFX();
 
     if(prep>0){
-      dom.hud.innerHTML=`<span style="color:${C.muted}">BEACON ${level+1}/5</span>  `
+      dom.hud.innerHTML=`<span style="color:${C.muted}">灯塔 ${level+1}/${C.beacon.levels.length}</span>  `
         +`<span style="color:${C.teal}">校准中 ${Math.ceil(prep)}</span>  `
         +`<span style="color:${C.muted}">站稳，别急着转</span>`;
     } else {
       dom.hud.innerHTML=
-        `<span style="color:${C.muted}">BEACON ${level+1}/5</span>  `
+        `<span style="color:${C.muted}">灯塔 ${level+1}/${C.beacon.levels.length}</span>  `
         +`<span style="color:${near?C.teal:'#a8b6c9'}">偏差 ${Math.round(Math.abs(err))}°</span>  `
         + (lockT>0 ? `<span style="color:${C.teal}">锁定 ${lockT.toFixed(1)}s</span>`
                    : `<span style="color:${C.muted}">${err>0?'向右转':'向左转'}</span>`);
@@ -823,7 +842,7 @@ const beacon=(function(){
   function next(){
     hideOverlay();
     if(level+1>=C.beacon.levels.length){
-      showOverlay(overlayCard('✦','全部点亮','五座灯塔的信号均已接收','回主屏','menu',C.sky));
+      showOverlay(overlayCard('✦','全部点亮','八座灯塔的信号均已接收','回主屏','menu',C.sky));
       return;
     }
     level++;
@@ -838,13 +857,17 @@ const beacon=(function(){
    ===================================================================== */
 const room=(function(){
   let idx=0, hold=0, spin=0, shakes=0, lastSide=0, calm=0, passed=false, spinPrev=undefined, prep=0;
+  let taps=0, prevA=9.8, lastTapT=-1, circPrev=undefined;
 
   const rooms=[
-    { id:'down', name:'扣屏', hint:'把屏幕朝下扣住，保持 1 秒', glyph:'down' },
-    { id:'up',   name:'举天', hint:'把手机竖起来举高，稳住 1.5 秒', glyph:'up' },
-    { id:'spin', name:'大回环', hint:'握着手机原地转一整圈', glyph:'spin' },
-    { id:'still',name:'定身', hint:'放平手机，一动画都不要有，坚持 2 秒', glyph:'still' },
-    { id:'shake',name:'翻面三连', hint:'快速翻过来再翻回去，做 3 次', glyph:'shake' }
+    { id:'down',  name:'扣屏',   hint:'把屏幕朝下扣住，保持 1 秒', glyph:'down' },
+    { id:'up',    name:'举天',   hint:'把手机竖起来举高，稳住 1.5 秒', glyph:'up' },
+    { id:'spin',  name:'大回环', hint:'握着手机原地转一整圈', glyph:'spin' },
+    { id:'still', name:'定身',   hint:'放平手机，一动画都不要有，坚持 2 秒', glyph:'still' },
+    { id:'shake', name:'翻面三连', hint:'快速翻过来再翻回去，做 3 次', glyph:'shake' },
+    { id:'longstill', name:'长定', hint:'屏朝上平放，比刚才多撑一秒，三秒不动', glyph:'still' },
+    { id:'circle', name:'画圆',  hint:'像转方向盘一样，把手机绕一整圈', glyph:'circle' },
+    { id:'tap',    name:'轻叩',  hint:'屏幕朝上端平，向下轻叩三次', glyph:'tap' }
   ];
   const cur=()=>rooms[idx];
   function reset(){ hold=0; spin=0; shakes=0; calm=0; passed=false; lastSide=0; spinPrev=undefined; }
@@ -879,6 +902,24 @@ const room=(function(){
       lastSide=side;
       return shakes>=C.room.shakes;
     }
+    if(id==='longstill'){
+      const on=state.pose.dAbsA<0.22;
+      calm=on?calm+dt:Math.max(0,calm-dt*2);
+      return calm>=3.2;
+    }
+    if(id==='circle'){
+      const ang=deg(Math.atan2(state.pose.gamma, state.pose.beta));
+      if(circPrev===undefined) circPrev=ang;
+      let d=ang-circPrev; while(d>180)d-=360; while(d<-180)d+=360;
+      spin+=Math.abs(d); circPrev=ang;
+      return spin>=360;
+    }
+    if(id==='tap'){
+      const a=state.raw.absA;
+      if(a-prevA>3.2 && state.elapsed-lastTapT>0.22){ taps++; lastTapT=state.elapsed; }
+      prevA=a;
+      return taps>=3;
+    }
     return false;
   }
   function progress(){
@@ -887,6 +928,9 @@ const room=(function(){
     if(id==='up') return clamp(hold/(C.room.holdQuick*1.4),0,1);
     if(id==='spin') return clamp(spin/C.room.spinTotal,0,1);
     if(id==='still') return clamp(calm/(C.room.holdSlow*0.9),0,1);
+    if(id==='longstill') return clamp(calm/3.2,0,1);
+    if(id==='circle') return clamp(spin/360,0,1);
+    if(id==='tap') return clamp(taps/3,0,1);
     return clamp(shakes/C.room.shakes,0,1);
   }
 
@@ -913,6 +957,18 @@ const room=(function(){
       ctx.beginPath(); ctx.arc(0,0,s*0.68,0,Math.PI*2); ctx.stroke();
       ctx.beginPath(); ctx.arc(0,0,s*0.98,0,Math.PI*2); ctx.stroke();
       ctx.beginPath(); ctx.arc(0,0,s*0.1,0,Math.PI*2); ctx.fill();
+    } else if(kind==='circle'){
+      ctx.beginPath(); ctx.arc(0,0,s*0.72,rad(120),rad(390)); ctx.stroke();
+      const a2=rad(120), qx=Math.cos(a2)*s*0.72, qy=Math.sin(a2)*s*0.72;
+      ctx.beginPath(); ctx.moveTo(qx,qy); ctx.lineTo(qx+s*0.30,qy-s*0.20); ctx.lineTo(qx-s*0.08,qy-s*0.34);
+      ctx.closePath(); ctx.fill();
+    } else if(kind==='tap'){
+      ctx.beginPath(); ctx.moveTo(0,-s*0.86); ctx.lineTo(0,s*0.10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-s*0.34,-s*0.22); ctx.lineTo(0,s*0.14); ctx.lineTo(s*0.34,-s*0.22); ctx.stroke();
+      [0.42,0.66,0.90].forEach((k,i)=>{
+        ctx.beginPath(); ctx.moveTo(-s*k*0.9, s*0.46+i*s*0.20); ctx.lineTo(s*k*0.9, s*0.46+i*s*0.20);
+        ctx.lineWidth=1.6-i*0.3; ctx.stroke();
+      });
     } else {
       ctx.beginPath(); ctx.moveTo(-s*0.86,0); ctx.lineTo(s*0.86,0); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(-s*0.86,0); ctx.lineTo(-s*0.5,-s*0.34); ctx.moveTo(-s*0.86,0); ctx.lineTo(-s*0.5,s*0.34); ctx.stroke();
@@ -1015,14 +1071,14 @@ const room=(function(){
     }
     drawRing(passed?1:(prep>0 ? clamp(1-prep/1.6,0,1) : progress()));
     dom.hud.innerHTML=
-      `<span style="color:${C.muted}">ROOM ${idx+1}/5</span>  `
+      `<span style="color:${C.muted}">房间 ${idx+1}/${rooms.length}</span>  `
       +`<span style="color:#c4b5fd">${cur().name}</span>  `
       +`<span style="color:${C.muted}">${prep>0?'准备…':cur().hint}</span>`;
   }
   function next(){
     hideOverlay();
     if(idx+1>=rooms.length){
-      showOverlay(overlayCard('✦','密室通关','五道姿态口令全部完成','回主屏','menu',C.sky));
+      showOverlay(overlayCard('✦','密室通关','八道姿态口令全部完成','回主屏','menu',C.sky));
       return;
     }
     idx++; reset();
@@ -1030,8 +1086,9 @@ const room=(function(){
   function simulate(){
     const id=cur().id;
     if(id==='down'||id==='up') hold=99;
-    else if(id==='spin') spin=C.room.spinTotal;
-    else if(id==='still') calm=99;
+    else if(id==='spin'||id==='circle') spin=999;
+    else if(id==='still'||id==='longstill') calm=99;
+    else if(id==='tap') taps=3;
     else shakes=C.room.shakes;
   }
   return { update, enter, next, retry(){idx=0;reset();hideOverlay();}, simulate };
@@ -1110,6 +1167,7 @@ function enterGame(key){
 /* ==================== INIT ==================== */
 function init(){
   paintLEDs();
+  enableTouch(false);
   // 自动开始监听：Android WebView 与桌面浏览器不需要用户手势，只有 iOS 才需要按钮授权
   (function autoSensor(){
     const hasOri = typeof window.DeviceOrientationEvent!=='undefined';
